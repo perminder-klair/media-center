@@ -4,7 +4,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.25.0.0/16
+        - subnet: 172.26.0.0/16
   vpn_network:
     driver: bridge
     internal: true
@@ -31,7 +31,7 @@ services:
       - TZ=${TZ}
       - HEALTH_VPN_DURATION_INITIAL=30s
       - HEALTH_SUCCESS_WAIT_DURATION=5s
-      - FIREWALL_OUTBOUND_SUBNETS=172.25.0.0/16,172.21.0.0/16,172.22.0.0/16
+      - FIREWALL_OUTBOUND_SUBNETS=172.26.0.0/16,172.21.0.0/16,172.22.0.0/16
     volumes:
       - ${CONFIG_ROOT}/gluetun:/gluetun
     ports:

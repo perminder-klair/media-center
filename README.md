@@ -30,7 +30,7 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 ### 🔍 Content Management (*arr Suite)
 - **[Prowlarr](https://prowlarr.com/)** - Indexer manager (replaces Jackett)
 - **[Radarr](https://radarr.video/)** - Movie collection manager
-- **[Sonarr](https://sonarr.tv/)** - TV show collection manager  
+- **[Sonarr](https://sonarr.tv/)** - TV show collection manager
 - **[Lidarr](https://lidarr.audio/)** - Music collection manager
 - **[Readarr](https://readarr.com/)** - Book collection manager
 - **[Bazarr](https://www.bazarr.media/)** - Subtitle manager
@@ -171,7 +171,7 @@ Popular providers: NordVPN, ExpressVPN, Surfshark, PIA, Mullvad, ProtonVPN
 
 The startup script will:
 1. ✅ Validate configuration
-2. 🔧 Create directory structure  
+2. 🔧 Create directory structure
 3. 🚀 Start services in proper order
 4. 🔍 Verify VPN connectivity
 5. 📋 Display access URLs
@@ -194,7 +194,7 @@ After services start, configure each application:
 #### 3. *arr Applications
 Configure each application with:
 - **Radarr** (Movies): http://localhost:7878
-- **Sonarr** (TV): http://localhost:8989  
+- **Sonarr** (TV): http://localhost:8989
 - **Lidarr** (Music): http://localhost:8686
 - **Bazarr** (Subtitles): http://localhost:6767
 - **Readarr** (Books): Not included (architecture compatibility issues)
@@ -205,7 +205,7 @@ Configure each application with:
 
 #### 4. qBittorrent (Download Client)
 - **URL**: http://localhost:8080
-- **Default**: `admin` / `adminadmin`
+- **Default**: `admin` / `pinku1`
 - Configure download categories and paths
 - ⚠️ **No VPN protection by default** - enable in `.env` if needed
 
@@ -380,7 +380,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### ✅ **Included & Working**
 - **Jellyfin** - Media streaming server
-- **Jellyseerr** - Request management interface  
+- **Jellyseerr** - Request management interface
 - **Prowlarr** - Indexer manager
 - **Radarr** - Movie collection manager
 - **Sonarr** - TV show collection manager

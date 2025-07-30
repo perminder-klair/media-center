@@ -75,7 +75,7 @@ fi
 
 # Create necessary directories if they don't exist
 print_status "Creating necessary directories..."
-mkdir -p config/{jellyfin,radarr,sonarr,lidarr,readarr,bazarr,prowlarr,jellyseerr,qbittorrent,traefik,authelia,gluetun,flaresolverr,heimdall,unpackerr}
+mkdir -p config/{jellyfin,radarr,sonarr,lidarr,bazarr,prowlarr,jellyseerr,qbittorrent,traefik,authelia,gluetun,flaresolverr,heimdall,unpackerr}
 mkdir -p data/{torrents/{movies,tv,music,books},media/{movies,tv,music,books}}
 
 # Set proper permissions
@@ -114,7 +114,7 @@ print_status "Starting Phase 2: Media Services..."
 $COMPOSE_CMD up -d jellyfin jellyseerr
 
 print_status "Starting Phase 3: Content Management (*arr stack)..."
-$COMPOSE_CMD up -d prowlarr radarr sonarr lidarr readarr bazarr
+$COMPOSE_CMD up -d prowlarr radarr sonarr lidarr bazarr
 
 print_status "Starting Phase 4: Download & Utility Services..."
 $COMPOSE_CMD up -d qbittorrent flaresolverr unpackerr
@@ -137,7 +137,7 @@ echo "   Prowlarr:     https://prowlarr.${DOMAIN}"
 echo "   Radarr:       https://radarr.${DOMAIN}"
 echo "   Sonarr:       https://sonarr.${DOMAIN}"
 echo "   Lidarr:       https://lidarr.${DOMAIN}"
-echo "   Readarr:      https://readarr.${DOMAIN}"
+echo ""
 echo "   Bazarr:       https://bazarr.${DOMAIN}"
 echo "   qBittorrent:  https://qbittorrent.${DOMAIN}"
 echo ""
