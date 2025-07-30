@@ -18,7 +18,7 @@ nano .env  # Update VPN settings if needed
 
 # 4. Access your services directly
 open http://localhost:8096  # Jellyfin
-open http://localhost:9091  # Authelia (admin/admin123)
+open http://localhost:8080  # qBittorrent (admin/adminadmin)
 ```
 
 ## 📋 What's Included
@@ -36,7 +36,7 @@ open http://localhost:9091  # Authelia (admin/admin123)
 - **[Bazarr](https://www.bazarr.media/)** - Subtitle manager
 
 ### 📥 Download & Processing
-- **[qBittorrent](https://www.qbittorrent.org/)** - Torrent client (VPN protected)
+- **[qBittorrent](https://www.qbittorrent.org/)** - Torrent client (VPN optional)
 - **[Unpackerr](https://github.com/Unpackerr/unpackerr)** - Automated extraction
 - **[Flaresolverr](https://github.com/FlareSolverr/FlareSolverr)** - Cloudflare bypass
 
@@ -180,40 +180,36 @@ The startup script will:
 
 After services start, configure each application:
 
-#### 1. Authelia (Authentication)
-- **URL**: http://localhost:9091
-- **Default**: `admin` / `admin123` (⚠️ **CHANGE IMMEDIATELY**)
-- Set up 2FA (TOTP recommended)
-
-#### 2. Jellyfin (Media Server)
+#### 1. Jellyfin (Media Server)
 - **URL**: http://localhost:8096
 - Create admin account
 - Add media libraries pointing to `/media/*` folders
 - Enable hardware transcoding if GPU available
 
-#### 3. Prowlarr (Indexer Manager)
+#### 2. Prowlarr (Indexer Manager)
 - **URL**: http://localhost:9696
 - Add indexers (torrent sites, Usenet providers)
 - Configure Flaresolverr if needed for Cloudflare-protected sites
 
-#### 4. *arr Applications
+#### 3. *arr Applications
 Configure each application with:
 - **Radarr** (Movies): http://localhost:7878
 - **Sonarr** (TV): http://localhost:8989  
 - **Lidarr** (Music): http://localhost:8686
 - **Bazarr** (Subtitles): http://localhost:6767
+- **Readarr** (Books): Not included (architecture compatibility issues)
 - **Root folders**: Point to appropriate `/media/*` directories
 - **Download client**: qBittorrent (http://qbittorrent:8080)
 - **Indexers**: Connect to Prowlarr
 - **Quality profiles**: Set desired quality standards
 
-#### 5. qBittorrent (Download Client)
+#### 4. qBittorrent (Download Client)
 - **URL**: http://localhost:8080
 - **Default**: `admin` / `adminadmin`
 - Configure download categories and paths
 - ⚠️ **No VPN protection by default** - enable in `.env` if needed
 
-#### 6. Jellyseerr (Request Management)
+#### 5. Jellyseerr (Request Management)
 - **URL**: http://localhost:5055
 - Connect to Jellyfin server
 - Connect to Radarr and Sonarr
@@ -222,10 +218,9 @@ Configure each application with:
 ## 🔒 Security Features
 
 ### Authentication & Authorization (Optional)
-- **2FA Authentication** via Authelia (TOTP, WebAuthn, Duo)
-- **Role-based access control** (admin vs. user permissions)
-- **Session management** with configurable timeouts
-- **Direct port access** bypasses authentication for easier setup
+- **2FA Authentication** via Authelia (disabled for localhost access)
+- **Direct port access** without authentication for easier setup
+- **Domain-based authentication** available but not configured for localhost
 
 ### Network Security
 - **Optional VPN Protection** for download traffic (disabled by default)
@@ -401,13 +396,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ⚠️ **Excluded/Optional**
 - **Readarr** - Excluded (architecture compatibility issues)
 - **VPN Protection** - Disabled by default (enable in `.env`)
-- **Domain-based access** - Available but not required
+- **Domain-based access** - Available but not configured for localhost
+- **Authelia** - Authentication disabled for direct port access
 
 ## 🚨 Important Security Notes
 
 1. **Change default passwords** immediately after setup:
-   - Authelia: `admin` / `admin123` 
    - qBittorrent: `admin` / `adminadmin`
+   - Other services: Setup required on first access
 2. **Enable VPN** for download activities (update `.env`)
 3. **Keep services updated** regularly with `./update.sh`
 4. **Monitor logs** for suspicious activity

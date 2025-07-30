@@ -20,29 +20,26 @@ All services are accessible directly via ports without domain setup:
 - **Flaresolverr** (Cloudflare Bypass): http://localhost:8191
 
 ### 🔒 **Security & Infrastructure**
-- **Authelia** (2FA Authentication): http://localhost:9091
 - **Traefik** (Reverse Proxy): http://localhost:8091
 - **Traefik Dashboard** (Admin Panel): http://localhost:8090
+- **Authelia** (2FA Authentication): ⚠️ Disabled (domain-based auth not compatible with localhost)
 
 ### 📊 **Dashboard**
 - **Heimdall** (Application Dashboard): http://localhost:8082
 
 ## 🚀 **Quick Start**
 
-1. **First-time setup**: Visit http://localhost:9091 (Authelia)
-   - Default: `admin` / `admin123` ⚠️ **CHANGE IMMEDIATELY**
-
-2. **Media setup**: Visit http://localhost:8096 (Jellyfin)
+1. **Media setup**: Visit http://localhost:8096 (Jellyfin)
    - Create admin account
    - Add media libraries
 
-3. **Configure indexers**: Visit http://localhost:9696 (Prowlarr)
+2. **Configure indexers**: Visit http://localhost:9696 (Prowlarr)
    - Add your preferred torrent/usenet indexers
 
-4. **Set up downloaders**: Visit http://localhost:8080 (qBittorrent)
+3. **Set up downloaders**: Visit http://localhost:8080 (qBittorrent)
    - Default: `admin` / `adminadmin`
 
-5. **Request interface**: Visit http://localhost:5055 (Jellyseerr)
+4. **Request interface**: Visit http://localhost:5055 (Jellyseerr)
    - Connect to Jellyfin and *arr applications
 
 ## 🔧 **Service Configuration Order**
@@ -58,7 +55,6 @@ All services are accessible directly via ports without domain setup:
 
 | Service | Username | Password |
 |---------|----------|----------|
-| Authelia | admin | admin123 |
 | qBittorrent | admin | adminadmin |
 | Others | N/A | Setup required |
 
@@ -88,4 +84,5 @@ docker-compose restart [service-name]
 - **VPN**: Currently disabled (requires real VPN credentials)
 - **Readarr**: Excluded due to architecture compatibility
 - **SSL**: Available via Traefik but not configured for direct port access
-- **Authentication**: Available via Authelia but not enforced on direct ports
+- **Authentication**: Authelia disabled (domain-based auth incompatible with localhost)
+- **Security**: Services run without authentication in direct port mode
