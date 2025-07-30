@@ -1,6 +1,6 @@
 # 🎬 Media Server Stack
 
-A comprehensive, secure, and automated media server setup featuring Jellyfin, the complete *arr suite, VPN protection, and 2FA authentication.
+A comprehensive, secure, and automated media server setup featuring Jellyfin, the complete *arr suite, direct port access, and optional VPN protection with 2FA authentication.
 
 ## 🚀 Quick Start
 
@@ -9,15 +9,16 @@ A comprehensive, secure, and automated media server setup featuring Jellyfin, th
 git clone <repository-url>
 cd media-center
 
-# 2. Configure environment
+# 2. Configure environment (optional - works with defaults)
 cp .env.example .env
-nano .env  # Update your settings
+nano .env  # Update VPN settings if needed
 
 # 3. Start the stack
 ./start.sh
 
-# 4. Access your services
-open https://media.local
+# 4. Access your services directly
+open http://localhost:8096  # Jellyfin
+open http://localhost:9091  # Authelia (admin/admin123)
 ```
 
 ## 📋 What's Included
@@ -118,41 +119,47 @@ AUTHELIA_SESSION_SECRET=your-random-session-secret
 AUTHELIA_STORAGE_ENCRYPTION_KEY=your-random-encryption-key
 ```
 
-### 2. DNS Configuration
+### 2. Service Access
 
-**Option A: Local Development (recommended for testing)**
-Add to `/etc/hosts` or `C:\\Windows\\System32\\drivers\\etc\\hosts`:
+**Direct Port Access (Default)**
+All services are accessible directly via localhost ports:
 
 ```
-127.0.0.1 media.local
-127.0.0.1 auth.media.local
-127.0.0.1 jellyfin.media.local
-127.0.0.1 requests.media.local
-127.0.0.1 dashboard.media.local
-127.0.0.1 prowlarr.media.local
-127.0.0.1 radarr.media.local
-127.0.0.1 sonarr.media.local
-127.0.0.1 lidarr.media.local
-127.0.0.1 readarr.media.local
-127.0.0.1 bazarr.media.local
-127.0.0.1 qbittorrent.media.local
+Jellyfin (Media Server):      http://localhost:8096
+Jellyseerr (Requests):        http://localhost:5055
+Prowlarr (Indexers):          http://localhost:9696
+Radarr (Movies):              http://localhost:7878
+Sonarr (TV Shows):            http://localhost:8989
+Lidarr (Music):               http://localhost:8686
+Bazarr (Subtitles):           http://localhost:6767
+qBittorrent (Downloads):      http://localhost:8080
+Authelia (Authentication):    http://localhost:9091
+Traefik (Reverse Proxy):      http://localhost:8091
+Traefik Dashboard:            http://localhost:8090
+Heimdall (Dashboard):         http://localhost:8082
+Flaresolverr (CF Bypass):     http://localhost:8191
 ```
 
-**Option B: Production Domain**
-Configure your DNS provider to point your domain and subdomains to your server's IP address.
+**Domain Access (Advanced)**
+For domain-based access, configure DNS to point your domain and subdomains to your server's IP address.
 
-### 3. VPN Configuration
+### 3. VPN Configuration (Optional)
 
-This stack routes download traffic through a VPN for privacy and security.
+VPN protection is available but disabled by default for easier setup.
 
+**To Enable VPN:**
 1. **Choose a supported VPN provider** from [Gluetun's list](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers)
-2. **Update `.env` file** with your VPN credentials
+2. **Update `.env` file**:
+   ```bash
+   ENABLE_VPN=true
+   VPN_SERVICE_PROVIDER=your-provider
+   OPENVPN_USER=your-username
+   OPENVPN_PASSWORD=your-password
+   ```
 3. **Download config files** (if required) to `config/gluetun/`
+4. **Restart services**: `./stop.sh && ./start.sh`
 
-Popular providers:
-- NordVPN, ExpressVPN, Surfshark
-- Private Internet Access (PIA)
-- Mullvad, ProtonVPN
+Popular providers: NordVPN, ExpressVPN, Surfshark, PIA, Mullvad, ProtonVPN
 
 ## 🚀 Deployment
 
@@ -174,51 +181,63 @@ The startup script will:
 After services start, configure each application:
 
 #### 1. Authelia (Authentication)
-- **URL**: `https://auth.media.local`
+- **URL**: http://localhost:9091
 - **Default**: `admin` / `admin123` (⚠️ **CHANGE IMMEDIATELY**)
 - Set up 2FA (TOTP recommended)
 
 #### 2. Jellyfin (Media Server)
-- **URL**: `https://jellyfin.media.local`  
+- **URL**: http://localhost:8096
 - Create admin account
 - Add media libraries pointing to `/media/*` folders
 - Enable hardware transcoding if GPU available
 
 #### 3. Prowlarr (Indexer Manager)
-- **URL**: `https://prowlarr.media.local`
+- **URL**: http://localhost:9696
 - Add indexers (torrent sites, Usenet providers)
 - Configure Flaresolverr if needed for Cloudflare-protected sites
 
 #### 4. *arr Applications
 Configure each application with:
+- **Radarr** (Movies): http://localhost:7878
+- **Sonarr** (TV): http://localhost:8989  
+- **Lidarr** (Music): http://localhost:8686
+- **Bazarr** (Subtitles): http://localhost:6767
 - **Root folders**: Point to appropriate `/media/*` directories
 - **Download client**: qBittorrent (http://qbittorrent:8080)
 - **Indexers**: Connect to Prowlarr
 - **Quality profiles**: Set desired quality standards
 
 #### 5. qBittorrent (Download Client)
-- **URL**: `https://qbittorrent.media.local`
+- **URL**: http://localhost:8080
 - **Default**: `admin` / `adminadmin`
 - Configure download categories and paths
-- Verify VPN is active (check IP address)
+- ⚠️ **No VPN protection by default** - enable in `.env` if needed
+
+#### 6. Jellyseerr (Request Management)
+- **URL**: http://localhost:5055
+- Connect to Jellyfin server
+- Connect to Radarr and Sonarr
+- Configure user permissions
 
 ## 🔒 Security Features
 
-### Authentication & Authorization
+### Authentication & Authorization (Optional)
 - **2FA Authentication** via Authelia (TOTP, WebAuthn, Duo)
 - **Role-based access control** (admin vs. user permissions)
 - **Session management** with configurable timeouts
+- **Direct port access** bypasses authentication for easier setup
 
 ### Network Security
-- **VPN Protection** for all download traffic
-- **Reverse proxy** with automatic SSL certificates
+- **Optional VPN Protection** for download traffic (disabled by default)
+- **Reverse proxy** with automatic SSL certificates (Traefik)
 - **Network isolation** between service groups
 - **Security headers** and modern TLS configuration
 
 ### Data Protection
 - **Encrypted storage** for authentication data
-- **Secure secrets management** via Docker secrets
+- **Environment-based secrets** management
 - **Regular automated backups** with retention policies
+- **Proper file permissions** and user isolation
 
 ## 🛠️ Management
 
@@ -264,28 +283,39 @@ docker-compose restart radarr
 ## 📊 Monitoring & Troubleshooting
 
 ### Health Checks
-- **Gluetun VPN**: Check IP address and connection status
 - **Service status**: `docker-compose ps`
 - **Resource usage**: `docker stats`
+- **Service logs**: `docker-compose logs [service]`
 
 ### Common Issues
 
-**VPN Not Working**
+**Service Not Accessible**
+```bash
+# Check if service is running
+docker-compose ps
+
+# Check service logs
+docker-compose logs [service-name]
+
+# Restart specific service
+docker-compose restart [service-name]
+```
+
+**Port Conflicts**
+```bash
+# Check what's using a port
+ss -tlnp | grep :8096
+
+# Change port in docker-compose.yml if needed
+```
+
+**VPN Issues (if enabled)**
 ```bash
 # Check VPN status
 docker exec gluetun wget -qO- ifconfig.me
 
 # View VPN logs
 docker-compose logs gluetun
-```
-
-**SSL Certificate Issues**
-```bash
-# Check Traefik logs
-docker-compose logs traefik
-
-# Verify domain DNS resolution
-nslookup your-domain.com
 ```
 
 **Permission Problems**
@@ -351,14 +381,44 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## 📋 Service Status
+
+### ✅ **Included & Working**
+- **Jellyfin** - Media streaming server
+- **Jellyseerr** - Request management interface  
+- **Prowlarr** - Indexer manager
+- **Radarr** - Movie collection manager
+- **Sonarr** - TV show collection manager
+- **Lidarr** - Music collection manager
+- **Bazarr** - Subtitle manager
+- **qBittorrent** - Download client
+- **Flaresolverr** - Cloudflare bypass
+- **Unpackerr** - Automated extraction
+- **Authelia** - 2FA authentication (optional)
+- **Traefik** - Reverse proxy
+- **Heimdall** - Application dashboard
+
+### ⚠️ **Excluded/Optional**
+- **Readarr** - Excluded (architecture compatibility issues)
+- **VPN Protection** - Disabled by default (enable in `.env`)
+- **Domain-based access** - Available but not required
+
 ## 🚨 Important Security Notes
 
-1. **Change default passwords** immediately after setup
-2. **Use strong, unique passwords** for all services  
+1. **Change default passwords** immediately after setup:
+   - Authelia: `admin` / `admin123` 
+   - qBittorrent: `admin` / `adminadmin`
+2. **Enable VPN** for download activities (update `.env`)
 3. **Keep services updated** regularly with `./update.sh`
 4. **Monitor logs** for suspicious activity
 5. **Backup configurations** regularly with `./backup.sh`
-6. **Use VPN** for all download activities
-7. **Limit external access** to trusted networks when possible
+6. **Limit external access** when exposing ports externally
+
+## 📚 Additional Resources
+
+- **Service Ports**: See `SERVICE-PORTS.md` for complete port listing
+- **Implementation Plan**: See `MEDIA-SERVER-PLAN.md` for detailed planning
+- **Configuration Examples**: Check `config/` directory for sample configs
+- **Management Scripts**: Use `start.sh`, `stop.sh`, `update.sh`, `backup.sh`
 
 **Happy streaming! 🍿**

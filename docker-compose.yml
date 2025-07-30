@@ -85,13 +85,6 @@ services:
     networks:
       - proxy_network
       - media_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`dashboard.${DOMAIN}`)"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=authelia@docker"
 
   # ===========================================
   # AUTHENTICATION & AUTHORIZATION
@@ -109,17 +102,11 @@ services:
       - AUTHELIA_LOG_LEVEL=${AUTHELIA_LOG_LEVEL}
     volumes:
       - ${CONFIG_ROOT}/authelia:/config
+    ports:
+      - "9091:9091"
     networks:
       - proxy_network
       - media_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.authelia.rule=Host(`auth.${DOMAIN}`)"
-      - "traefik.http.routers.authelia.entrypoints=websecure"
-      - "traefik.http.routers.authelia.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.authelia.forwardauth.address=http://authelia:${AUTHELIA_PORT}/api/verify?rd=https://auth.${DOMAIN}"
-      - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
-      - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
 
   # ===========================================
   # MEDIA SERVER
@@ -131,22 +118,18 @@ services:
     user: ${PUID}:${PGID}
     environment:
       - TZ=${TZ}
-      - JELLYFIN_PublishedServerUrl=https://jellyfin.${DOMAIN}
+      - JELLYFIN_PublishedServerUrl=http://localhost:8096
     volumes:
       - ${CONFIG_ROOT}/jellyfin:/config
       - ${DATA_ROOT}/media:/media
       - /tmp/jellyfin-transcode:/transcode
     devices:
       - /dev/dri:/dev/dri  # Intel/AMD GPU
+    ports:
+      - "8096:8096"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${DOMAIN}`)"
-      - "traefik.http.routers.jellyfin.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.jellyfin.loadbalancer.server.port=${JELLYFIN_PORT}"
 
   # ===========================================
   # REQUEST MANAGEMENT
@@ -161,16 +144,11 @@ services:
       - TZ=${TZ}
     volumes:
       - ${CONFIG_ROOT}/jellyseerr:/app/config
+    ports:
+      - "5055:5055"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyseerr.rule=Host(`requests.${DOMAIN}`)"
-      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
-      - "traefik.http.routers.jellyseerr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.jellyseerr.middlewares=authelia@docker"
-      - "traefik.http.services.jellyseerr.loadbalancer.server.port=${JELLYSEERR_PORT}"
 
   # ===========================================
   # INDEXER MANAGEMENT
@@ -185,16 +163,11 @@ services:
       - TZ=${TZ}
     volumes:
       - ${CONFIG_ROOT}/prowlarr:/config
+    ports:
+      - "9696:9696"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DOMAIN}`)"
-      - "traefik.http.routers.prowlarr.entrypoints=websecure"
-      - "traefik.http.routers.prowlarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.prowlarr.middlewares=authelia@docker"
-      - "traefik.http.services.prowlarr.loadbalancer.server.port=${PROWLARR_PORT}"
 
   # ===========================================
   # LIBRARY MANAGERS (*ARR SUITE)
@@ -211,16 +184,11 @@ services:
       - ${CONFIG_ROOT}/radarr:/config
       - ${DATA_ROOT}/media/movies:/movies
       - ${DATA_ROOT}/torrents:/downloads
+    ports:
+      - "7878:7878"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
-      - "traefik.http.routers.radarr.entrypoints=websecure"
-      - "traefik.http.routers.radarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.radarr.middlewares=authelia@docker"
-      - "traefik.http.services.radarr.loadbalancer.server.port=${RADARR_PORT}"
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -234,16 +202,11 @@ services:
       - ${CONFIG_ROOT}/sonarr:/config
       - ${DATA_ROOT}/media/tv:/tv
       - ${DATA_ROOT}/torrents:/downloads
+    ports:
+      - "8989:8989"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
-      - "traefik.http.routers.sonarr.entrypoints=websecure"
-      - "traefik.http.routers.sonarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.sonarr.middlewares=authelia@docker"
-      - "traefik.http.services.sonarr.loadbalancer.server.port=${SONARR_PORT}"
 
   lidarr:
     image: linuxserver/lidarr:latest
@@ -257,39 +220,11 @@ services:
       - ${CONFIG_ROOT}/lidarr:/config
       - ${DATA_ROOT}/media/music:/music
       - ${DATA_ROOT}/torrents:/downloads
+    ports:
+      - "8686:8686"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)"
-      - "traefik.http.routers.lidarr.entrypoints=websecure"
-      - "traefik.http.routers.lidarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.lidarr.middlewares=authelia@docker"
-      - "traefik.http.services.lidarr.loadbalancer.server.port=${LIDARR_PORT}"
-
-  readarr:
-    image: hotio/readarr:latest
-    container_name: readarr
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ${CONFIG_ROOT}/readarr:/config
-      - ${DATA_ROOT}/media/books:/books
-      - ${DATA_ROOT}/torrents:/downloads
-    networks:
-      - media_network
-      - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.readarr.rule=Host(`readarr.${DOMAIN}`)"
-      - "traefik.http.routers.readarr.entrypoints=websecure"
-      - "traefik.http.routers.readarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.readarr.middlewares=authelia@docker"
-      - "traefik.http.services.readarr.loadbalancer.server.port=${READARR_PORT}"
 
   # ===========================================
   # SUBTITLE MANAGER
@@ -306,16 +241,11 @@ services:
       - ${CONFIG_ROOT}/bazarr:/config
       - ${DATA_ROOT}/media/movies:/movies
       - ${DATA_ROOT}/media/tv:/tv
+    ports:
+      - "6767:6767"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.bazarr.rule=Host(`bazarr.${DOMAIN}`)"
-      - "traefik.http.routers.bazarr.entrypoints=websecure"
-      - "traefik.http.routers.bazarr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.bazarr.middlewares=authelia@docker"
-      - "traefik.http.services.bazarr.loadbalancer.server.port=${BAZARR_PORT}"
 
   # ===========================================
   # DOWNLOAD CLIENT
@@ -332,16 +262,13 @@ services:
     volumes:
       - ${CONFIG_ROOT}/qbittorrent:/config
       - ${DATA_ROOT}/torrents:/downloads
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
     networks:
       - media_network
       - proxy_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
-      - "traefik.http.routers.qbittorrent.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.qbittorrent.middlewares=authelia@docker"
-      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
 
   # ===========================================
   # CLOUDFLARE BYPASS
@@ -353,15 +280,10 @@ services:
     environment:
       - LOG_LEVEL=${LOG_LEVEL}
       - TZ=${TZ}
+    ports:
+      - "8191:8191"
     networks:
       - media_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.flaresolverr.rule=Host(`flaresolverr.${DOMAIN}`)"
-      - "traefik.http.routers.flaresolverr.entrypoints=websecure"
-      - "traefik.http.routers.flaresolverr.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.flaresolverr.middlewares=authelia@docker"
-      - "traefik.http.services.flaresolverr.loadbalancer.server.port=${FLARESOLVERR_PORT}"
 
   # ===========================================
   # EXTRACTION TOOL
@@ -385,10 +307,10 @@ services:
       - UN_LIDARR_0_URL=http://lidarr:${LIDARR_PORT}
       - UN_LIDARR_0_API_KEY=
       - UN_LIDARR_0_PATHS_0=/downloads/music
-      # Readarr Configuration
-      - UN_READARR_0_URL=http://readarr:${READARR_PORT}
-      - UN_READARR_0_API_KEY=
-      - UN_READARR_0_PATHS_0=/downloads/books
+      # Readarr Configuration (Disabled - service not available)
+      # - UN_READARR_0_URL=http://readarr:${READARR_PORT}
+      # - UN_READARR_0_API_KEY=
+      # - UN_READARR_0_PATHS_0=/downloads/books
     volumes:
       - ${DATA_ROOT}/torrents:/downloads
     networks:
@@ -407,12 +329,8 @@ services:
       - TZ=${TZ}
     volumes:
       - ${CONFIG_ROOT}/heimdall:/config
+    ports:
+      - "8082:80"
     networks:
       - proxy_network
       - media_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.heimdall.entrypoints=websecure"
-      - "traefik.http.routers.heimdall.tls.certresolver=letsencrypt"
-      - "traefik.http.services.heimdall.loadbalancer.server.port=${HEIMDALL_PORT}"
