@@ -1,0 +1,418 @@
+
+networks:
+  media_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+  vpn_network:
+    driver: bridge
+    internal: true
+  proxy_network:
+    driver: bridge
+
+services:
+  # ===========================================
+  # VPN Gateway - MUST BE STARTED FIRST
+  # ===========================================
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - VPN_TYPE=${VPN_TYPE}
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - TZ=${TZ}
+      - HEALTH_VPN_DURATION_INITIAL=30s
+      - HEALTH_SUCCESS_WAIT_DURATION=5s
+      - FIREWALL_OUTBOUND_SUBNETS=172.25.0.0/16,172.21.0.0/16,172.22.0.0/16
+    volumes:
+      - ${CONFIG_ROOT}/gluetun:/gluetun
+    ports:
+      - "8080:8080"  # qBittorrent WebUI
+      - "6881:6881"  # qBittorrent incoming connections
+      - "6881:6881/udp"
+    networks:
+      - vpn_network
+      - media_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ===========================================
+  # REVERSE PROXY & SSL
+  # ===========================================
+  traefik:
+    image: traefik:v3.1
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - --api.dashboard=true
+      - --api.debug=false
+      - --log.level=${LOG_LEVEL}
+      - --providers.docker=true
+      - --providers.docker.network=proxy_network
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "8091:80"
+      - "${HTTPS_PORT}:443"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CONFIG_ROOT}/traefik/acme.json:/acme.json
+      - ${CONFIG_ROOT}/traefik/dynamic:/dynamic:ro
+    networks:
+      - proxy_network
+      - media_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`dashboard.${DOMAIN}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=authelia@docker"
+
+  # ===========================================
+  # AUTHENTICATION & AUTHORIZATION
+  # ===========================================
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      - AUTHELIA_DEFAULT_2FA_METHOD=${AUTHELIA_DEFAULT_2FA_METHOD}
+      - AUTHELIA_LOG_LEVEL=${AUTHELIA_LOG_LEVEL}
+    volumes:
+      - ${CONFIG_ROOT}/authelia:/config
+    networks:
+      - proxy_network
+      - media_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authelia.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authelia.entrypoints=websecure"
+      - "traefik.http.routers.authelia.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.authelia.forwardauth.address=http://authelia:${AUTHELIA_PORT}/api/verify?rd=https://auth.${DOMAIN}"
+      - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
+
+  # ===========================================
+  # MEDIA SERVER
+  # ===========================================
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=https://jellyfin.${DOMAIN}
+    volumes:
+      - ${CONFIG_ROOT}/jellyfin:/config
+      - ${DATA_ROOT}/media:/media
+      - /tmp/jellyfin-transcode:/transcode
+    devices:
+      - /dev/dri:/dev/dri  # Intel/AMD GPU
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=${JELLYFIN_PORT}"
+
+  # ===========================================
+  # REQUEST MANAGEMENT
+  # ===========================================
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/jellyseerr:/app/config
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyseerr.rule=Host(`requests.${DOMAIN}`)"
+      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
+      - "traefik.http.routers.jellyseerr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.jellyseerr.middlewares=authelia@docker"
+      - "traefik.http.services.jellyseerr.loadbalancer.server.port=${JELLYSEERR_PORT}"
+
+  # ===========================================
+  # INDEXER MANAGEMENT
+  # ===========================================
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/prowlarr:/config
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DOMAIN}`)"
+      - "traefik.http.routers.prowlarr.entrypoints=websecure"
+      - "traefik.http.routers.prowlarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.prowlarr.middlewares=authelia@docker"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=${PROWLARR_PORT}"
+
+  # ===========================================
+  # LIBRARY MANAGERS (*ARR SUITE)
+  # ===========================================
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/radarr:/config
+      - ${DATA_ROOT}/media/movies:/movies
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.radarr.middlewares=authelia@docker"
+      - "traefik.http.services.radarr.loadbalancer.server.port=${RADARR_PORT}"
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/sonarr:/config
+      - ${DATA_ROOT}/media/tv:/tv
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.sonarr.middlewares=authelia@docker"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=${SONARR_PORT}"
+
+  lidarr:
+    image: linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/lidarr:/config
+      - ${DATA_ROOT}/media/music:/music
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)"
+      - "traefik.http.routers.lidarr.entrypoints=websecure"
+      - "traefik.http.routers.lidarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lidarr.middlewares=authelia@docker"
+      - "traefik.http.services.lidarr.loadbalancer.server.port=${LIDARR_PORT}"
+
+  readarr:
+    image: hotio/readarr:latest
+    container_name: readarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/readarr:/config
+      - ${DATA_ROOT}/media/books:/books
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.readarr.rule=Host(`readarr.${DOMAIN}`)"
+      - "traefik.http.routers.readarr.entrypoints=websecure"
+      - "traefik.http.routers.readarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.readarr.middlewares=authelia@docker"
+      - "traefik.http.services.readarr.loadbalancer.server.port=${READARR_PORT}"
+
+  # ===========================================
+  # SUBTITLE MANAGER
+  # ===========================================
+  bazarr:
+    image: linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/bazarr:/config
+      - ${DATA_ROOT}/media/movies:/movies
+      - ${DATA_ROOT}/media/tv:/tv
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bazarr.rule=Host(`bazarr.${DOMAIN}`)"
+      - "traefik.http.routers.bazarr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.bazarr.middlewares=authelia@docker"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=${BAZARR_PORT}"
+
+  # ===========================================
+  # DOWNLOAD CLIENT
+  # ===========================================
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DOMAIN}`)"
+      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
+      - "traefik.http.routers.qbittorrent.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.qbittorrent.middlewares=authelia@docker"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+
+  # ===========================================
+  # CLOUDFLARE BYPASS
+  # ===========================================
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL}
+      - TZ=${TZ}
+    networks:
+      - media_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flaresolverr.rule=Host(`flaresolverr.${DOMAIN}`)"
+      - "traefik.http.routers.flaresolverr.entrypoints=websecure"
+      - "traefik.http.routers.flaresolverr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.flaresolverr.middlewares=authelia@docker"
+      - "traefik.http.services.flaresolverr.loadbalancer.server.port=${FLARESOLVERR_PORT}"
+
+  # ===========================================
+  # EXTRACTION TOOL
+  # ===========================================
+  unpackerr:
+    image: golift/unpackerr:latest
+    container_name: unpackerr
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      - TZ=${TZ}
+      # Sonarr Configuration
+      - UN_SONARR_0_URL=http://sonarr:${SONARR_PORT}
+      - UN_SONARR_0_API_KEY=
+      - UN_SONARR_0_PATHS_0=/downloads/tv
+      # Radarr Configuration  
+      - UN_RADARR_0_URL=http://radarr:${RADARR_PORT}
+      - UN_RADARR_0_API_KEY=
+      - UN_RADARR_0_PATHS_0=/downloads/movies
+      # Lidarr Configuration
+      - UN_LIDARR_0_URL=http://lidarr:${LIDARR_PORT}
+      - UN_LIDARR_0_API_KEY=
+      - UN_LIDARR_0_PATHS_0=/downloads/music
+      # Readarr Configuration
+      - UN_READARR_0_URL=http://readarr:${READARR_PORT}
+      - UN_READARR_0_API_KEY=
+      - UN_READARR_0_PATHS_0=/downloads/books
+    volumes:
+      - ${DATA_ROOT}/torrents:/downloads
+    networks:
+      - media_network
+
+  # ===========================================
+  # DASHBOARD
+  # ===========================================
+  heimdall:
+    image: linuxserver/heimdall:latest
+    container_name: heimdall
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/heimdall:/config
+    networks:
+      - proxy_network
+      - media_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.heimdall.entrypoints=websecure"
+      - "traefik.http.routers.heimdall.tls.certresolver=letsencrypt"
+      - "traefik.http.services.heimdall.loadbalancer.server.port=${HEIMDALL_PORT}"
