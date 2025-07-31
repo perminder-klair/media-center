@@ -41,7 +41,7 @@ RETENTION_DAYS=30
 INCLUDE_MEDIA=false
 COMPRESS=true
 MIGRATION_MODE=false
-EXPORT_SECRETS=false
+EXPORT_SECRETS=true
 ANONYMIZE_SECRETS=false
 
 while [[ $# -gt 0 ]]; do
@@ -140,9 +140,9 @@ check_service_status() {
 extract_secrets() {
     local config_file=$1
     local output_file=$2
-    
+
     print_status "Extracting secrets from $config_file..."
-    
+
     # Extract API keys and secrets
     grep -E "(api_key|ApiKey|API_KEY|secret|password|token)" "$config_file" 2>/dev/null | \
     sed 's/^[[:space:]]*//' >> "$output_file" 2>/dev/null || true
@@ -152,10 +152,10 @@ extract_secrets() {
 anonymize_secrets() {
     local file=$1
     local backup_file="${file}.original"
-    
+
     # Create backup of original
     cp "$file" "$backup_file"
-    
+
     # Replace common secret patterns with placeholders
     sed -i 's/\(api_key[[:space:]]*[:=][[:space:]]*\)[^[:space:]]\+/\1PLACEHOLDER_API_KEY/gi' "$file"
     sed -i 's/\(ApiKey[[:space:]]*[:=][[:space:]]*\)[^[:space:]]\+/\1PLACEHOLDER_API_KEY/gi' "$file"
@@ -226,7 +226,7 @@ print_status "Exporting service information..."
 # Migration-specific backup features
 if [ "$MIGRATION_MODE" = true ]; then
     print_status "Creating migration-specific exports..."
-    
+
     # Export detailed system information
     {
         echo "# Migration System Information"
@@ -257,7 +257,7 @@ if [ "$MIGRATION_MODE" = true ]; then
             check_service_status "$service"
         done
     } > "$BACKUP_DIR/migration_info.txt"
-    
+
     # Check for free disk space on source
     print_status "Checking disk space requirements..."
     {
@@ -285,7 +285,7 @@ fi
 if [ "$EXPORT_SECRETS" = true ]; then
     print_warning "Exporting API keys and secrets - keep this file secure!"
     SECRETS_FILE="$BACKUP_DIR/secrets_export.txt"
-    
+
     {
         echo "# Exported Secrets and API Keys"
         echo "# Generated: $(date)"
@@ -298,7 +298,7 @@ if [ "$EXPORT_SECRETS" = true ]; then
         echo ""
         echo "## Service Configuration Secrets"
     } > "$SECRETS_FILE"
-    
+
     # Extract secrets from major config files
     find config -name "*.xml" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "*.conf" 2>/dev/null | while read -r file; do
         if [ -f "$file" ]; then
@@ -307,7 +307,7 @@ if [ "$EXPORT_SECRETS" = true ]; then
             echo "" >> "$SECRETS_FILE"
         fi
     done
-    
+
     chmod 600 "$SECRETS_FILE"  # Restrict access
     print_success "Secrets exported to: $SECRETS_FILE"
     print_warning "Remember to delete this file after successful migration!"
@@ -316,18 +316,18 @@ fi
 # Anonymize secrets if requested
 if [ "$ANONYMIZE_SECRETS" = true ]; then
     print_status "Anonymizing secrets in configuration files..."
-    
+
     find "$BACKUP_DIR/config" -name "*.xml" -o -name "*.json" -o -name "*.yml" -o -name "*.yaml" -o -name "*.conf" 2>/dev/null | while read -r file; do
         if [ -f "$file" ]; then
             anonymize_secrets "$file"
         fi
     done
-    
+
     # Also anonymize .env if present
     if [ -f "$BACKUP_DIR/.env" ]; then
         anonymize_secrets "$BACKUP_DIR/.env"
     fi
-    
+
     print_success "Secrets anonymized in backup. Original files saved with .original extension"
 fi
 
@@ -557,13 +557,13 @@ BACKUP_SIZE=$(get_dir_size "$BACKUP_DIR")
 if [ "$COMPRESS" = true ]; then
     print_status "Compressing backup..."
     COMPRESSED_FILE="$BACKUP_BASE_DIR/media-server-backup-$TIMESTAMP.tar.gz"
-    
+
     tar -czf "$COMPRESSED_FILE" -C "$BACKUP_BASE_DIR" "$TIMESTAMP"
-    
+
     if [ $? -eq 0 ]; then
         COMPRESSED_SIZE=$(get_dir_size "$COMPRESSED_FILE")
         print_success "Backup compressed: $COMPRESSED_FILE (Size: $COMPRESSED_SIZE)"
-        
+
         # Remove uncompressed backup
         rm -rf "$BACKUP_DIR"
         FINAL_BACKUP="$COMPRESSED_FILE"
