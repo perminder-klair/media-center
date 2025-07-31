@@ -15,23 +15,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **View all services**: `docker-compose ps`
 - **View service logs**: `docker-compose logs -f [service-name]`
 - **Restart single service**: `docker-compose restart [service-name]`
-- **Check VPN status** (if enabled): `docker exec gluetun wget -qO- ifconfig.me`
 - **Fix permissions**: `chown -R 1000:1000 config data && chmod -R 755 config data`
 
 ### Configuration
 - **Environment setup**: Copy `.env.example` to `.env` and configure
 - **Service access**: All services available via direct ports (see SERVICE-PORTS.md)
-- **VPN setup**: Set `ENABLE_VPN=true` in `.env` and configure VPN provider settings
 
 ## Architecture Overview
 
 ### Docker Compose Structure
-- **Networks**: Segregated networks (media_network, vpn_network, proxy_network) for security
+- **Networks**: Segregated networks (media_network) for service communication
 - **Services**: 13 containerized services with dependency management and health checks
 - **Volumes**: Persistent storage for configs (`./config/`) and media data (`./data/`)
 
 ### Service Categories
-1. **Infrastructure**: Gluetun (VPN), Traefik (reverse proxy), Authelia (2FA auth)
+1. **Infrastructure**: Authelia (2FA auth)
 2. **Media Core**: Jellyfin (streaming server), Jellyseerr (request management)
 3. **Content Management**: Prowlarr, Radarr, Sonarr, Lidarr, Readarr, Bazarr (*arr suite)
 4. **Downloads**: qBittorrent (torrent client), Flaresolverr (Cloudflare bypass), Unpackerr (extraction)
@@ -39,9 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Key Technical Details
 - **User/Group IDs**: Uses PUID/PGID (1000:1000) for consistent file permissions
-- **VPN Protection**: Optional - qBittorrent can route through Gluetun VPN container
-- **SSL/TLS**: Traefik handles automatic Let's Encrypt certificates for domain access
-- **Authentication**: Authelia provides 2FA but disabled for localhost access
+- **Authentication**: Authelia provides 2FA for enhanced security
 - **Data Flow**: Downloads → Processing → Organization → Streaming
 
 ### Configuration Files
@@ -59,21 +55,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 
 ### Port Mappings
-- Jellyfin: 8096, Jellyseerr: 5055, qBittorrent: 8080, Traefik: 8091/8090
-- *arr services: Prowlarr (9696), Radarr (7878), Sonarr (8989), Lidarr (8686), Bazarr (6767)
-- Utilities: Flaresolverr (8191), Heimdall (8082), Authelia (9091)
+- **Media Services**: Jellyfin (8096), Jellyseerr (5055)
+- **Content Management**: Prowlarr (9696), Radarr (7878), Sonarr (8989), Lidarr (8686), Bazarr (6767)
+- **Download & Utilities**: qBittorrent (8080), Flaresolverr (8191)
+- **Dashboard & Auth**: Heimdall (8082), Authelia (9091)
 
 ### Security Features
-- VPN protection for download traffic (optional via Gluetun)
-- Network segmentation between service tiers
-- 2FA authentication via Authelia (domain-based only)
-- Automatic SSL certificate management
+- Network segmentation for service isolation
+- 2FA authentication via Authelia
 - Environment-based secrets management
+- Direct port access with configurable authentication
 
 ## Development Notes
 
 - Services start in dependency order managed by the start script
-- VPN connectivity is validated before continuing startup (when enabled)
 - Health checks ensure service availability before marking as ready
 - Log aggregation available through Docker Compose logs
 - Permission management critical for media file access across containers

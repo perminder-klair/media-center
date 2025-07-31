@@ -20,9 +20,7 @@ All services are accessible directly via ports without domain setup:
 - **Flaresolverr** (Cloudflare Bypass): http://localhost:8191
 
 ### 🔒 **Security & Infrastructure**
-- **Traefik** (Reverse Proxy): http://localhost:8091
-- **Traefik Dashboard** (Admin Panel): http://localhost:8090
-- **Authelia** (2FA Authentication): ⚠️ Disabled (domain-based auth not compatible with localhost)
+- **Authelia** (2FA Authentication): http://localhost:9091
 
 ### 📊 **Dashboard**
 - **Heimdall** (Application Dashboard): http://localhost:8082
@@ -81,8 +79,9 @@ docker-compose restart [service-name]
 
 ## 📝 **Notes**
 
-- **VPN**: Currently disabled (requires real VPN credentials)
 - **Readarr**: Excluded due to architecture compatibility
-- **SSL**: Available via Traefik but not configured for direct port access
-- **Authentication**: Authelia disabled (domain-based auth incompatible with localhost)
-- **Security**: Services run without authentication in direct port mode
+- **VPN Gateway**: Removed (manage externally if needed)
+- **Reverse Proxy**: Removed for simplified deployment
+- **SSL/TLS**: Not configured for direct port access
+- **Authentication**: Authelia available but optional for localhost access
+- **Security**: Services accessible directly via ports for easier setup

@@ -65,17 +65,9 @@ if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
     exit 1
 fi
 
-# Check VPN configuration if enabled
-if [ "$ENABLE_VPN" = "true" ]; then
-    if [ -z "$VPN_SERVICE_PROVIDER" ] || [ -z "$OPENVPN_USER" ] || [ -z "$OPENVPN_PASSWORD" ]; then
-        print_warning "VPN is enabled but not fully configured. Please update .env file."
-        print_warning "You may need to place VPN config files in config/gluetun/"
-    fi
-fi
-
 # Create necessary directories if they don't exist
 print_status "Creating necessary directories..."
-mkdir -p config/{jellyfin,radarr,sonarr,lidarr,bazarr,prowlarr,jellyseerr,qbittorrent,traefik,authelia,gluetun,flaresolverr,heimdall,unpackerr}
+mkdir -p config/{jellyfin,radarr,sonarr,lidarr,bazarr,prowlarr,jellyseerr,qbittorrent,authelia,flaresolverr,heimdall,unpackerr}
 mkdir -p data/{torrents/{movies,tv,music,books},media/{movies,tv,music,books}}
 
 # Set proper permissions
@@ -83,32 +75,13 @@ print_status "Setting proper permissions..."
 chown -R $PUID:$PGID config data 2>/dev/null || true
 chmod -R 755 config data
 
-# Ensure ACME file has correct permissions
-touch config/traefik/acme.json
-chmod 600 config/traefik/acme.json
-
 # Start the stack in phases
-print_status "Starting Phase 1: Infrastructure (VPN, Proxy, Auth)..."
-$COMPOSE_CMD up -d gluetun traefik authelia
+print_status "Starting Phase 1: Infrastructure (Auth)..."
+$COMPOSE_CMD up -d authelia
 
 # Wait for core services
 print_status "Waiting for core services to initialize..."
 sleep 30
-
-# Check if Gluetun is healthy (if VPN is enabled)
-if [ "$ENABLE_VPN" = "true" ]; then
-    print_status "Checking VPN status..."
-    for i in {1..12}; do
-        if docker exec gluetun wget -qO- ifconfig.me 2>/dev/null; then
-            print_success "VPN connection established"
-            break
-        fi
-        if [ $i -eq 12 ]; then
-            print_warning "VPN might not be working properly. Check Gluetun logs."
-        fi
-        sleep 5
-    done
-fi
 
 print_status "Starting Phase 2: Media Services..."
 $COMPOSE_CMD up -d jellyfin jellyseerr
@@ -125,21 +98,20 @@ $COMPOSE_CMD up -d heimdall
 print_success "All services started!"
 
 echo ""
-echo "🌐 Access URLs (update /etc/hosts or DNS):"
-echo "   Dashboard:    https://${DOMAIN}"
-echo "   Auth:         https://auth.${DOMAIN}"
-echo "   Jellyfin:     https://jellyfin.${DOMAIN}"
-echo "   Requests:     https://requests.${DOMAIN}"
-echo "   Traefik:      https://dashboard.${DOMAIN}"
+echo "🌐 Access URLs:"
+echo "   Dashboard:    http://localhost:8082"
+echo "   Auth:         http://localhost:9091"
+echo "   Jellyfin:     http://localhost:8096"
+echo "   Requests:     http://localhost:5055"
 echo ""
 echo "🔧 Management URLs:"
-echo "   Prowlarr:     https://prowlarr.${DOMAIN}"
-echo "   Radarr:       https://radarr.${DOMAIN}"
-echo "   Sonarr:       https://sonarr.${DOMAIN}"
-echo "   Lidarr:       https://lidarr.${DOMAIN}"
+echo "   Prowlarr:     http://localhost:9696"
+echo "   Radarr:       http://localhost:7878"
+echo "   Sonarr:       http://localhost:8989"
+echo "   Lidarr:       http://localhost:8686"
 echo ""
-echo "   Bazarr:       https://bazarr.${DOMAIN}"
-echo "   qBittorrent:  https://qbittorrent.${DOMAIN}"
+echo "   Bazarr:       http://localhost:6767"
+echo "   qBittorrent:  http://localhost:8080"
 echo ""
 echo "📋 Default Login:"
 echo "   Username: admin"
@@ -151,8 +123,7 @@ echo "📜 Logs:   docker-compose logs -f [service]"
 echo "🛑 Stop:   ./stop.sh"
 echo ""
 print_warning "Remember to:"
-print_warning "1. Update your DNS or /etc/hosts file to point domains to this server"
-print_warning "2. Configure your VPN settings in .env and config/gluetun/"
+print_warning "1. Access services via the HTTP URLs shown above"
 print_warning "3. Change default passwords in Authelia and all services"
 print_warning "4. Configure indexers in Prowlarr"
 print_warning "5. Set up quality profiles in *arr applications"

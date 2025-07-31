@@ -1,6 +1,6 @@
 # 🎬 Media Server Stack
 
-A comprehensive, secure, and automated media server setup featuring Jellyfin, the complete *arr suite, direct port access, and optional VPN protection with 2FA authentication.
+A comprehensive, secure, and automated media server setup featuring Jellyfin, the complete *arr suite, and direct port access for simplified deployment.
 
 ## 🚀 Quick Start
 
@@ -11,7 +11,7 @@ cd media-center
 
 # 2. Configure environment (optional - works with defaults)
 cp .env.example .env
-nano .env  # Update VPN settings if needed
+nano .env  # Update settings if needed
 
 # 3. Start the stack
 ./start.sh
@@ -36,13 +36,11 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 - **[Bazarr](https://www.bazarr.media/)** - Subtitle manager
 
 ### 📥 Download & Processing
-- **[qBittorrent](https://www.qbittorrent.org/)** - Torrent client (VPN optional)
+- **[qBittorrent](https://www.qbittorrent.org/)** - Torrent client with direct port access
 - **[Unpackerr](https://github.com/Unpackerr/unpackerr)** - Automated extraction
 - **[Flaresolverr](https://github.com/FlareSolverr/FlareSolverr)** - Cloudflare bypass
 
 ### 🔒 Security & Infrastructure
-- **[Gluetun](https://github.com/qdm12/gluetun)** - VPN container for secure downloads
-- **[Traefik](https://traefik.io/)** - Reverse proxy with automatic SSL
 - **[Authelia](https://www.authelia.com/)** - 2FA authentication & authorization
 - **[Heimdall](https://heimdall.site/)** - Application dashboard
 
@@ -72,7 +70,6 @@ media-center/
 ├── config/                 # Service configurations
 │   ├── jellyfin/          # Jellyfin config & metadata
 │   ├── *arr/              # *arr application configs
-│   ├── traefik/           # Reverse proxy config
 │   └── authelia/          # Authentication config
 ├── data/                   # Media and downloads
 │   ├── torrents/          # Download staging area
@@ -101,19 +98,14 @@ cp .env.example .env
 nano .env
 ```
 
-**Critical settings to update:**
+**Optional settings to customize:**
 
 ```bash
-# Domain configuration
+# Domain configuration (optional)
 DOMAIN=your-domain.com
 EMAIL=your-email@domain.com
 
-# VPN settings (required for secure downloads)
-VPN_SERVICE_PROVIDER=your-vpn-provider
-OPENVPN_USER=your-vpn-username
-OPENVPN_PASSWORD=your-vpn-password
-
-# Security secrets (generate random strings)
+# Security secrets (generate random strings for production)
 AUTHELIA_JWT_SECRET=your-random-jwt-secret
 AUTHELIA_SESSION_SECRET=your-random-session-secret
 AUTHELIA_STORAGE_ENCRYPTION_KEY=your-random-encryption-key
@@ -134,32 +126,12 @@ Lidarr (Music):               http://localhost:8686
 Bazarr (Subtitles):           http://localhost:6767
 qBittorrent (Downloads):      http://localhost:8080
 Authelia (Authentication):    http://localhost:9091
-Traefik (Reverse Proxy):      http://localhost:8091
-Traefik Dashboard:            http://localhost:8090
 Heimdall (Dashboard):         http://localhost:8082
 Flaresolverr (CF Bypass):     http://localhost:8191
 ```
 
-**Domain Access (Advanced)**
-For domain-based access, configure DNS to point your domain and subdomains to your server's IP address.
-
-### 3. VPN Configuration (Optional)
-
-VPN protection is available but disabled by default for easier setup.
-
-**To Enable VPN:**
-1. **Choose a supported VPN provider** from [Gluetun's list](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers)
-2. **Update `.env` file**:
-   ```bash
-   ENABLE_VPN=true
-   VPN_SERVICE_PROVIDER=your-provider
-   OPENVPN_USER=your-username
-   OPENVPN_PASSWORD=your-password
-   ```
-3. **Download config files** (if required) to `config/gluetun/`
-4. **Restart services**: `./stop.sh && ./start.sh`
-
-Popular providers: NordVPN, ExpressVPN, Surfshark, PIA, Mullvad, ProtonVPN
+**External Access (Advanced)**
+For remote access, configure your router/firewall to forward the desired ports to your server's IP address.
 
 ## 🚀 Deployment
 
@@ -173,8 +145,7 @@ The startup script will:
 1. ✅ Validate configuration
 2. 🔧 Create directory structure
 3. 🚀 Start services in proper order
-4. 🔍 Verify VPN connectivity
-5. 📋 Display access URLs
+4. 📋 Display access URLs
 
 ### Phase 2: Initial Setup
 
@@ -205,9 +176,8 @@ Configure each application with:
 
 #### 4. qBittorrent (Download Client)
 - **URL**: http://localhost:8080
-- **Default**: `admin` / `pinku1`
+- **Default**: `admin` / `adminadmin`
 - Configure download categories and paths
-- ⚠️ **No VPN protection by default** - enable in `.env` if needed
 
 #### 5. Jellyseerr (Request Management)
 - **URL**: http://localhost:5055
@@ -218,15 +188,14 @@ Configure each application with:
 ## 🔒 Security Features
 
 ### Authentication & Authorization (Optional)
-- **2FA Authentication** via Authelia (disabled for localhost access)
-- **Direct port access** without authentication for easier setup
-- **Domain-based authentication** available but not configured for localhost
+- **2FA Authentication** via Authelia for enhanced security
+- **Direct port access** for simplified setup and management
+- **Configurable authentication** can be enabled for production use
 
 ### Network Security
-- **Optional VPN Protection** for download traffic (disabled by default)
-- **Reverse proxy** with automatic SSL certificates (Traefik)
 - **Network isolation** between service groups
-- **Security headers** and modern TLS configuration
+- **Container-level security** with proper permissions
+- **Environment-based configuration** for security settings
 
 ### Data Protection
 - **Encrypted storage** for authentication data
@@ -304,15 +273,6 @@ ss -tlnp | grep :8096
 # Change port in docker-compose.yml if needed
 ```
 
-**VPN Issues (if enabled)**
-```bash
-# Check VPN status
-docker exec gluetun wget -qO- ifconfig.me
-
-# View VPN logs
-docker-compose logs gluetun
-```
-
 **Permission Problems**
 ```bash
 # Fix ownership
@@ -320,27 +280,24 @@ chown -R 1000:1000 config data
 
 # Fix permissions
 chmod -R 755 config data
-chmod 600 config/traefik/acme.json
 ```
 
 ### Log Locations
 - **Service logs**: `docker-compose logs [service]`
 - **Application logs**: `config/[service]/logs/`
-- **Traefik access logs**: `config/traefik/access.log`
 
 ## 🔧 Customization
 
 ### Adding Services
 1. Add service definition to `docker-compose.yml`
 2. Create configuration directory
-3. Add Traefik labels for routing
+3. Configure port mappings for direct access
 4. Update firewall/security rules if needed
 
-### Custom Domains
-1. Update `DOMAIN` in `.env`
-2. Update Authelia configuration
-3. Update Traefik rules
-4. Obtain new SSL certificates
+### Remote Access
+1. Configure router port forwarding
+2. Update firewall rules for security
+3. Consider VPN or tunnel solutions for secure access
 
 ### Performance Tuning
 - **GPU Transcoding**: Configure device passthrough
@@ -390,25 +347,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Flaresolverr** - Cloudflare bypass
 - **Unpackerr** - Automated extraction
 - **Authelia** - 2FA authentication (optional)
-- **Traefik** - Reverse proxy
 - **Heimdall** - Application dashboard
 
 ### ⚠️ **Excluded/Optional**
 - **Readarr** - Excluded (architecture compatibility issues)
-- **VPN Protection** - Disabled by default (enable in `.env`)
-- **Domain-based access** - Available but not configured for localhost
-- **Authelia** - Authentication disabled for direct port access
+- **Reverse Proxy** - Removed for simplified deployment
+- **VPN Gateway** - Removed (manage externally if needed)
+- **SSL/TLS** - Not configured for direct port access
 
 ## 🚨 Important Security Notes
 
 1. **Change default passwords** immediately after setup:
    - qBittorrent: `admin` / `adminadmin`
    - Other services: Setup required on first access
-2. **Enable VPN** for download activities (update `.env`)
-3. **Keep services updated** regularly with `./update.sh`
-4. **Monitor logs** for suspicious activity
-5. **Backup configurations** regularly with `./backup.sh`
-6. **Limit external access** when exposing ports externally
+2. **Keep services updated** regularly with `./update.sh`
+3. **Monitor logs** for suspicious activity
+4. **Backup configurations** regularly with `./backup.sh`
+5. **Secure external access** when exposing ports externally
+6. **Consider external VPN** for download traffic security
 
 ## 📚 Additional Resources
 

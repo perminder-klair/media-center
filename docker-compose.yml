@@ -5,86 +5,8 @@ networks:
     ipam:
       config:
         - subnet: 172.26.0.0/16
-  vpn_network:
-    driver: bridge
-    internal: true
-  proxy_network:
-    driver: bridge
 
 services:
-  # ===========================================
-  # VPN Gateway - MUST BE STARTED FIRST
-  # ===========================================
-  gluetun:
-    image: qmcgaw/gluetun:latest
-    container_name: gluetun
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    environment:
-      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
-      - VPN_TYPE=${VPN_TYPE}
-      - OPENVPN_USER=${OPENVPN_USER}
-      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - TZ=${TZ}
-      - HEALTH_VPN_DURATION_INITIAL=30s
-      - HEALTH_SUCCESS_WAIT_DURATION=5s
-      - FIREWALL_OUTBOUND_SUBNETS=172.26.0.0/16,172.21.0.0/16,172.22.0.0/16
-    volumes:
-      - ${CONFIG_ROOT}/gluetun:/gluetun
-    ports:
-      - "8080:8080"  # qBittorrent WebUI
-      - "6881:6881"  # qBittorrent incoming connections
-      - "6881:6881/udp"
-    networks:
-      - vpn_network
-      - media_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  # ===========================================
-  # REVERSE PROXY & SSL
-  # ===========================================
-  traefik:
-    image: traefik:v3.1
-    container_name: traefik
-    restart: unless-stopped
-    command:
-      - --api.dashboard=true
-      - --api.debug=false
-      - --log.level=${LOG_LEVEL}
-      - --providers.docker=true
-      - --providers.docker.network=proxy_network
-      - --providers.docker.exposedbydefault=false
-      - --providers.file.directory=/dynamic
-      - --providers.file.watch=true
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.letsencrypt.acme.email=${EMAIL}
-      - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-    environment:
-      - TZ=${TZ}
-    ports:
-      - "8091:80"
-      - "${HTTPS_PORT}:443"
-      - "8090:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${CONFIG_ROOT}/traefik/acme.json:/acme.json
-      - ${CONFIG_ROOT}/traefik/dynamic:/dynamic:ro
-    networks:
-      - proxy_network
-      - media_network
 
   # ===========================================
   # AUTHENTICATION & AUTHORIZATION
@@ -105,7 +27,6 @@ services:
     ports:
       - "9091:9091"
     networks:
-      - proxy_network
       - media_network
 
   # ===========================================
@@ -129,7 +50,6 @@ services:
       - "8096:8096"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # REQUEST MANAGEMENT
@@ -148,7 +68,6 @@ services:
       - "5055:5055"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # INDEXER MANAGEMENT
@@ -167,7 +86,6 @@ services:
       - "9696:9696"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # LIBRARY MANAGERS (*ARR SUITE)
@@ -188,7 +106,6 @@ services:
       - "7878:7878"
     networks:
       - media_network
-      - proxy_network
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -206,7 +123,6 @@ services:
       - "8989:8989"
     networks:
       - media_network
-      - proxy_network
 
   lidarr:
     image: linuxserver/lidarr:latest
@@ -224,7 +140,6 @@ services:
       - "8686:8686"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # SUBTITLE MANAGER
@@ -245,7 +160,6 @@ services:
       - "6767:6767"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # DOWNLOAD CLIENT
@@ -268,7 +182,6 @@ services:
       - "6881:6881/udp"
     networks:
       - media_network
-      - proxy_network
 
   # ===========================================
   # CLOUDFLARE BYPASS
@@ -332,5 +245,4 @@ services:
     ports:
       - "8082:80"
     networks:
-      - proxy_network
       - media_network
