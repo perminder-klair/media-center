@@ -22,10 +22,6 @@ All services are accessible directly via ports without domain setup:
 - **qBittorrent** (Download Client): <http://localhost:8080>
 - **Flaresolverr** (Cloudflare Bypass): <http://localhost:8191>
 
-### 🔒 **Security & Infrastructure**
-
-- **Authelia** (2FA Authentication): <http://localhost:9091>
-
 ### 📊 **Dashboard**
 
 - **Heimdall** (Application Dashboard): <http://localhost:8082>
@@ -88,5 +84,5 @@ docker-compose restart [service-name]
 - **VPN Gateway**: Removed (manage externally if needed)
 - **Reverse Proxy**: Removed for simplified deployment
 - **SSL/TLS**: Not configured for direct port access
-- **Authentication**: Authelia available but optional for localhost access
+- **Authentication**: No authentication required for localhost access
 - **Security**: Services accessible directly via ports for easier setup

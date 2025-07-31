@@ -43,9 +43,8 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 - **[Unpackerr](https://github.com/Unpackerr/unpackerr)** - Automated extraction
 - **[Flaresolverr](https://github.com/FlareSolverr/FlareSolverr)** - Cloudflare bypass
 
-### 🔒 Security & Infrastructure
+### 🏠 Dashboard
 
-- **[Authelia](https://www.authelia.com/)** - 2FA authentication & authorization
 - **[Heimdall](https://heimdall.site/)** - Application dashboard
 
 ## 🛠️ Prerequisites
@@ -76,8 +75,7 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 media-center/
 ├── config/                 # Service configurations
 │   ├── jellyfin/          # Jellyfin config & metadata
-│   ├── *arr/              # *arr application configs
-│   └── authelia/          # Authentication config
+│   └── *arr/              # *arr application configs
 ├── data/                   # Media and downloads
 │   ├── torrents/          # Download staging area
 │   │   ├── movies/        # Movie downloads
@@ -111,11 +109,6 @@ nano .env
 # Domain configuration (optional)
 DOMAIN=your-domain.com
 EMAIL=your-email@domain.com
-
-# Security secrets (generate random strings for production)
-AUTHELIA_JWT_SECRET=your-random-jwt-secret
-AUTHELIA_SESSION_SECRET=your-random-session-secret
-AUTHELIA_STORAGE_ENCRYPTION_KEY=your-random-encryption-key
 ```
 
 ### 2. Service Access
@@ -132,7 +125,6 @@ Sonarr (TV Shows):            http://localhost:8989
 Lidarr (Music):               http://localhost:8686
 Bazarr (Subtitles):           http://localhost:6767
 qBittorrent (Downloads):      http://localhost:8080
-Authelia (Authentication):    http://localhost:9091
 Heimdall (Dashboard):         http://localhost:8082
 Flaresolverr (CF Bypass):     http://localhost:8191
 ```
@@ -202,11 +194,10 @@ Configure each application with:
 
 ## 🔒 Security Features
 
-### Authentication & Authorization (Optional)
+### Direct Access
 
-- **2FA Authentication** via Authelia for enhanced security
 - **Direct port access** for simplified setup and management
-- **Configurable authentication** can be enabled for production use
+- **No authentication required** for localhost access
 
 ### Network Security
 
@@ -216,8 +207,7 @@ Configure each application with:
 
 ### Data Protection
 
-- **Encrypted storage** for authentication data
-- **Environment-based secrets** management
+- **Environment-based configuration** management
 - **Regular automated backups** with retention policies
 - **Proper file permissions** and user isolation
 
@@ -378,7 +368,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **qBittorrent** - Download client
 - **Flaresolverr** - Cloudflare bypass
 - **Unpackerr** - Automated extraction
-- **Authelia** - 2FA authentication (optional)
 - **Heimdall** - Application dashboard
 
 ### ⚠️ **Excluded/Optional**
