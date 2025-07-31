@@ -24,10 +24,12 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 ## 📋 What's Included
 
 ### 🎥 Media Services
+
 - **[Jellyfin](https://jellyfin.org/)** - Free media server with hardware transcoding
 - **[Jellyseerr](https://github.com/Fallenbagel/jellyseerr)** - Request management for users
 
 ### 🔍 Content Management (*arr Suite)
+
 - **[Prowlarr](https://prowlarr.com/)** - Indexer manager (replaces Jackett)
 - **[Radarr](https://radarr.video/)** - Movie collection manager
 - **[Sonarr](https://sonarr.tv/)** - TV show collection manager
@@ -36,17 +38,20 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 - **[Bazarr](https://www.bazarr.media/)** - Subtitle manager
 
 ### 📥 Download & Processing
+
 - **[qBittorrent](https://www.qbittorrent.org/)** - Torrent client with direct port access
 - **[Unpackerr](https://github.com/Unpackerr/unpackerr)** - Automated extraction
 - **[Flaresolverr](https://github.com/FlareSolverr/FlareSolverr)** - Cloudflare bypass
 
 ### 🔒 Security & Infrastructure
+
 - **[Authelia](https://www.authelia.com/)** - 2FA authentication & authorization
 - **[Heimdall](https://heimdall.site/)** - Application dashboard
 
 ## 🛠️ Prerequisites
 
 ### System Requirements
+
 - **OS**: Linux (recommended), macOS, or Windows with WSL2
 - **CPU**: Intel i5-2300 / AMD FX-8100 or better
 - **RAM**: 8GB minimum, 16GB recommended
@@ -54,11 +59,13 @@ open http://localhost:8080  # qBittorrent (admin/adminadmin)
 - **Network**: Gigabit Ethernet recommended
 
 ### Software Requirements
+
 - **Docker** 20.10+ and **Docker Compose** 2.0+
 - **Git** (for cloning repository)
 - Text editor (nano, vim, VS Code, etc.)
 
 ### GPU Requirements (Recommended for Jellyfin Transcoding)
+
 - **Intel**: 7th gen+ processors with Quick Sync, or Arc GPUs
 - **NVIDIA**: GTX 1660 / RTX 20xx series or newer
 - **AMD**: Not recommended for transcoding
@@ -136,12 +143,14 @@ For remote access, configure your router/firewall to forward the desired ports t
 ## 🚀 Deployment
 
 ### Phase 1: Infrastructure
+
 ```bash
 # Start core services first
 ./start.sh
 ```
 
 The startup script will:
+
 1. ✅ Validate configuration
 2. 🔧 Create directory structure
 3. 🚀 Start services in proper order
@@ -152,35 +161,41 @@ The startup script will:
 After services start, configure each application:
 
 #### 1. Jellyfin (Media Server)
-- **URL**: http://localhost:8096
+
+- **URL**: <http://localhost:8096>
 - Create admin account
 - Add media libraries pointing to `/media/*` folders
 - Enable hardware transcoding if GPU available
 
 #### 2. Prowlarr (Indexer Manager)
-- **URL**: http://localhost:9696
+
+- **URL**: <http://localhost:9696>
 - Add indexers (torrent sites, Usenet providers)
 - Configure Flaresolverr if needed for Cloudflare-protected sites
 
 #### 3. *arr Applications
+
 Configure each application with:
-- **Radarr** (Movies): http://localhost:7878
-- **Sonarr** (TV): http://localhost:8989
-- **Lidarr** (Music): http://localhost:8686
-- **Bazarr** (Subtitles): http://localhost:6767
+
+- **Radarr** (Movies): <http://localhost:7878>
+- **Sonarr** (TV): <http://localhost:8989>
+- **Lidarr** (Music): <http://localhost:8686>
+- **Bazarr** (Subtitles): <http://localhost:6767>
 - **Readarr** (Books): Not included (architecture compatibility issues)
 - **Root folders**: Point to appropriate `/media/*` directories
-- **Download client**: qBittorrent (http://qbittorrent:8080)
+- **Download client**: qBittorrent (<http://qbittorrent:8080>)
 - **Indexers**: Connect to Prowlarr
 - **Quality profiles**: Set desired quality standards
 
 #### 4. qBittorrent (Download Client)
-- **URL**: http://localhost:8080
+
+- **URL**: <http://localhost:8080>
 - **Default**: `admin` / `adminadmin`
 - Configure download categories and paths
 
 #### 5. Jellyseerr (Request Management)
-- **URL**: http://localhost:5055
+
+- **URL**: <http://localhost:5055>
 - Connect to Jellyfin server
 - Connect to Radarr and Sonarr
 - Configure user permissions
@@ -188,16 +203,19 @@ Configure each application with:
 ## 🔒 Security Features
 
 ### Authentication & Authorization (Optional)
+
 - **2FA Authentication** via Authelia for enhanced security
 - **Direct port access** for simplified setup and management
 - **Configurable authentication** can be enabled for production use
 
 ### Network Security
+
 - **Network isolation** between service groups
 - **Container-level security** with proper permissions
 - **Environment-based configuration** for security settings
 
 ### Data Protection
+
 - **Encrypted storage** for authentication data
 - **Environment-based secrets** management
 - **Regular automated backups** with retention policies
@@ -206,6 +224,7 @@ Configure each application with:
 ## 🛠️ Management
 
 ### Daily Operations
+
 ```bash
 # Check status
 docker-compose ps
@@ -221,6 +240,7 @@ docker-compose restart radarr
 ```
 
 ### Backup & Restore
+
 ```bash
 # Create backup (configs only)
 ./backup.sh
@@ -233,6 +253,7 @@ docker-compose restart radarr
 ```
 
 ### Maintenance
+
 ```bash
 # Update all containers
 ./update.sh --restart
@@ -247,6 +268,7 @@ docker-compose restart radarr
 ## 📊 Monitoring & Troubleshooting
 
 ### Health Checks
+
 - **Service status**: `docker-compose ps`
 - **Resource usage**: `docker stats`
 - **Service logs**: `docker-compose logs [service]`
@@ -254,6 +276,7 @@ docker-compose restart radarr
 ### Common Issues
 
 **Service Not Accessible**
+
 ```bash
 # Check if service is running
 docker-compose ps
@@ -266,6 +289,7 @@ docker-compose restart [service-name]
 ```
 
 **Port Conflicts**
+
 ```bash
 # Check what's using a port
 ss -tlnp | grep :8096
@@ -274,6 +298,7 @@ ss -tlnp | grep :8096
 ```
 
 **Permission Problems**
+
 ```bash
 # Fix ownership
 chown -R 1000:1000 config data
@@ -283,23 +308,27 @@ chmod -R 755 config data
 ```
 
 ### Log Locations
+
 - **Service logs**: `docker-compose logs [service]`
 - **Application logs**: `config/[service]/logs/`
 
 ## 🔧 Customization
 
 ### Adding Services
+
 1. Add service definition to `docker-compose.yml`
 2. Create configuration directory
 3. Configure port mappings for direct access
 4. Update firewall/security rules if needed
 
 ### Remote Access
+
 1. Configure router port forwarding
 2. Update firewall rules for security
 3. Consider VPN or tunnel solutions for secure access
 
 ### Performance Tuning
+
 - **GPU Transcoding**: Configure device passthrough
 - **Storage**: Use SSD for transcoding cache
 - **Network**: Optimize Docker networks
@@ -308,12 +337,14 @@ chmod -R 755 config data
 ## 🆘 Support & Contributing
 
 ### Getting Help
+
 1. **Check logs**: `docker-compose logs [service]`
 2. **Review documentation**: Each service has detailed docs
 3. **Community forums**: Reddit, Discord communities
 4. **GitHub issues**: For bugs and feature requests
 
 ### Contributing
+
 1. Fork the repository
 2. Create a feature branch
 3. Test changes thoroughly
@@ -336,6 +367,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📋 Service Status
 
 ### ✅ **Included & Working**
+
 - **Jellyfin** - Media streaming server
 - **Jellyseerr** - Request management interface
 - **Prowlarr** - Indexer manager
@@ -350,6 +382,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Heimdall** - Application dashboard
 
 ### ⚠️ **Excluded/Optional**
+
 - **Readarr** - Excluded (architecture compatibility issues)
 - **Reverse Proxy** - Removed for simplified deployment
 - **VPN Gateway** - Removed (manage externally if needed)
