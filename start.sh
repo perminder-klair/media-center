@@ -67,7 +67,7 @@ fi
 
 # Create necessary directories if they don't exist
 print_status "Creating necessary directories..."
-mkdir -p config/{jellyfin,radarr,sonarr,lidarr,bazarr,prowlarr,jellyseerr,qbittorrent,authelia,flaresolverr,heimdall,unpackerr}
+mkdir -p config/{jellyfin,radarr,sonarr,lidarr,bazarr,prowlarr,jellyseerr,qbittorrent,flaresolverr,heimdall,unpackerr}
 mkdir -p data/{torrents/{movies,tv,music,books},media/{movies,tv,music,books}}
 
 # Set proper permissions
@@ -76,23 +76,20 @@ chown -R $PUID:$PGID config data 2>/dev/null || true
 chmod -R 755 config data
 
 # Start the stack in phases
-print_status "Starting Phase 1: Infrastructure (Auth)..."
-$COMPOSE_CMD up -d authelia
+print_status "Starting Phase 1: Media Services..."
+$COMPOSE_CMD up -d jellyfin jellyseerr
 
 # Wait for core services
 print_status "Waiting for core services to initialize..."
 sleep 30
 
-print_status "Starting Phase 2: Media Services..."
-$COMPOSE_CMD up -d jellyfin jellyseerr
-
-print_status "Starting Phase 3: Content Management (*arr stack)..."
+print_status "Starting Phase 2: Content Management (*arr stack)..."
 $COMPOSE_CMD up -d prowlarr radarr sonarr lidarr bazarr
 
-print_status "Starting Phase 4: Download & Utility Services..."
+print_status "Starting Phase 3: Download & Utility Services..."
 $COMPOSE_CMD up -d qbittorrent flaresolverr unpackerr
 
-print_status "Starting Phase 5: Dashboard..."
+print_status "Starting Phase 4: Dashboard..."
 $COMPOSE_CMD up -d heimdall
 
 print_success "All services started!"
